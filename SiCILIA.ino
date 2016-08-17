@@ -1,24 +1,24 @@
 /*
 
 
- Circuit:
+  Circuit:
 
- * 1 MLX90614 IR sensor attached
- * 2 Servos attached
- * 1 URF attached
- * 1 Grid-EYE
+   1 MLX90614 IR sensor attached
+   2 Servos attached
+   1 URF attached
+   1 Grid-EYE
 
- created 08 Jan 2015
- by Ala Shaabana
+  created 08 Jan 2015
+  by Ala Shaabana
 
- */
+*/
 
 
 /*
-* WiFi.h is NOT compatible with newping.h, likely because of timer functions being used by both libraries.2
-* For now, we will disable wifi but LEAVE THE CODE IN THERE, we will tackle that problem down the line if we need to
-* for the time being, all communication with Arduino is via Serial port, including Java communications.
-*
+  WiFi.h is NOT compatible with newping.h, likely because of timer functions being used by both libraries.2
+  For now, we will disable wifi but LEAVE THE CODE IN THERE, we will tackle that problem down the line if we need to
+  for the time being, all communication with Arduino is via Serial port, including Java communications.
+
 */
 //#include <WiFi.h>
 #include <TFT.h>
@@ -28,6 +28,7 @@
 #include <Adafruit_MLX90614.h>
 #include <NewPing.h>
 #include <TrueRandom.h>
+//#include <SoftwareSerial.h>
 
 // pin definition for the TFT screen on Uno
 #define cs   10
@@ -41,7 +42,7 @@
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
 
 // Motor turn time
-#define TURN_TIME 40
+#define TURN_TIME 35
 
 // Motor variables
 Servo xServo;
@@ -55,7 +56,7 @@ byte pixelTempL;
 
 char addr = 0x68;
 
-// Grid that will be 
+// Grid that will be
 float heatGrid[8][8];
 
 int irqPin = 2;
@@ -78,28 +79,51 @@ String oldInfo;
 // char array to print to the screen
 char statusPrint[20];
 
-// Clo calculation constants.. 
+// Clo calculation constants..
 float AIR_VELOCITY = (float) 0.20;
 float SB_CONSTANT = (float) (5.67 * pow(10, -8));
 float EMISSIVITY = (float) 0.9;
 float Fvf = (float) 1.0;
 float Rcl = (float) 0.155;
 
+
+//// I2C connection to RPi
+//#define SLAVE_ADDRESS 0x04
+//int number = 0;
+
+// Bluetooth instance TX RX 3V maps to A0 A1 3V
+//SoftwareSerial BT(A0, A1);
+//char a; // Stores incoming command
+
+// SiCILIA status to be sent through USB serial
+int sStat = 0;  // 0 tracking, 1 found, 2 pause
+
+// Receive the serial command with start and ending markers
+const byte numChars = 32;
+char receivedChars[numChars];
+boolean newData = false;
+
 void setup() {
 
   Serial.begin(115200);
+  //BT.begin(9600);
 
   // Put this line at the beginning of every sketch that uses the GLCD:
   TFTscreen.begin();
 
-  Wire.begin();
+  //Wire.begin();
   mlx.begin();
-  
-  // Initialize Servos 
+
+  // I2C connection to RPi
+  //Wire.begin(SLAVE_ADDRESS);
+  //Wire.onReceive(receiveData);
+  //Wire.onRequest(sendData);
+
+  // Initialize Servos
   xServo.attach(6);
   yServo.attach(5);
-  
-  
+
+
   trackingString = F("Tracking...");
   oldInfo = F(" ");
   // clear the screen with a black background
@@ -115,20 +139,24 @@ void setup() {
 
   // ste the font size very large for the loop
   TFTscreen.setTextSize(1);
-  TFTscreen.stroke(255,0,0);
-  TFTscreen.text("Tracking...",0,20);
+  TFTscreen.stroke(255, 0, 0);
+  TFTscreen.text("Tracking...", 0, 20);
 }
 
 int upCount = 0;
 int measurementNeeded = 0;
 
 void loop() {
-  
+
   // Display ambient and target temperatures on TFT display
   String ambientVal = "Ambient: " + String(mlx.readAmbientTempC()) + 'C';
   String targetVal = "Target: " + String(mlx.readObjectTempC()) + 'C';
   String output = ambientVal + '\n' + targetVal + '\n';
-  
+  //Serial.println(output);
+
+  //recvStartEnd();
+  //showData();
+
   // update distance on TFT using Ultrasonic Range Finder
   unsigned int uS = sonar.ping(); // Send ping, get ping time in microseconds (uS).
   String distance = F("Ping: ");
@@ -136,72 +164,91 @@ void loop() {
   distance = distance + dist + "cm \n";
   output = output + distance;
   updateTempAndDistance(output);
-  
-  // don't take any actions if grid is compromised 
-   _position pos = collectGridTemperatures();
-  if(ignore == false){
-    if(!isnan(pos.x) && !isinf(pos.x) && pos.x <= 9 && pos.x > 0){
-      if(pos.x < 4){
+
+  // don't take any actions if grid is compromised
+  _position pos = collectGridTemperatures();
+  if (ignore == false) {
+  //if (true) {
+    if (!isnan(pos.x) && !isinf(pos.x) && pos.x <= 9 && pos.x > 0) {
+      if (pos.x < 4) {
         updateTrackingStatus("Tracking");
         moveRight();
-      } else if (pos.x > 6){
+      } else if (pos.x > 6) {
         updateTrackingStatus("Tracking");
         moveLeft();
       } else {
+        sStat = 1; // this stat print is the signal for ready
         updateTrackingStatus("found");
+        //Serial.print("found ");
+        Serial.println(sStat);
       }
     }
-  
-    if(!isnan(pos.y) && !isinf(pos.y) && pos.y <= 9 && pos.y > 0){
-      if(pos.y < 4 && vDeg > -3){
+
+    if (!isnan(pos.y) && !isinf(pos.y) && pos.y <= 9 && pos.y > 0) {
+      if (pos.y < 4 && vDeg > -3) {
         updateTrackingStatus("Tracking");
         moveDown();
         vDeg--;
-      } else if (pos.y > 7 && vDeg < 3){
+      } else if (pos.y > 7 && vDeg < 3) {
         updateTrackingStatus("Tracking");
         moveUp();
         vDeg++;
       } else {
         updateTrackingStatus("found");
       }
-        
-        // Command handling block
-        int incomingByte = 0;
-        if(Serial.available() > 0){
-         // read incoming byte
-         incomingByte = Serial.read()-'0';
-         Serial.print(F("Received Command: "));
-         if(incomingByte == 1){
-           Serial.println(F("Take measurement"));
-           BeginMeasurement();
-         } else if (incomingByte == 2){
-           Serial.println(F("Refresh tracking"));
-           refreshTracking();
-         } else if (incomingByte == 3){
-           Serial.println(F("Pause"));
-           pause();
-         }
+
+      // Command handling block
+      int incomingByte = 0;
+      if (Serial.available() > 0) {
+        // read incoming byte
+        incomingByte = Serial.read() - '0';
+        //Serial.print(F("Received Command: "));
+        //Serial.println(incomingByte);
+        if (incomingByte == 1) {
+          Serial.println(F("Take measurement"));
+          BeginMeasurement();
+          sStat = 0;
+        } else if (incomingByte == 2) {
+          Serial.println(F("Refresh tracking"));
+          refreshTracking();
+        } else if (incomingByte == 3) {
+          Serial.println(F("Pause"));
+          pause();
+          sStat = 2;
+        } else if (incomingByte == 71) {  //  w = 119 - '0' = 71
+          Serial.println(F("MoveUp"));
+          moveUp();
+        } else if (incomingByte == 67) {  //  s = 115 - 48 = 67
+          Serial.println(F("MoveDown"));
+          moveDown();
+        } else if (incomingByte == 49) {  //  a = 97 49
+          Serial.println(F("MoveLeft"));
+          moveLeft();
+        } else if (incomingByte == 52) {  //  d = 100 52
+          Serial.println(F("MoveRight"));
+          moveRight();
         }
       }
     }
+  }
   delay(250);
 }
 
 /**
 ** Auxiliary function to measure the target temperature and distance in one shot.
-** This function is used primarily for some preliminary data collection and 
+** This function is used primarily for some preliminary data collection and
 ** sensor reading verification.
 **/
 
-void burstFireMeasure(){
+void burstFireMeasure() {
   int count = 0;
-  while(count < 10){
+  while (count < 10) {
     String ambientVal = String(mlx.readAmbientTempC());
     String targetVal = String(mlx.readObjectTempC());
-    
+
     unsigned int uS = sonar.ping(); // Send ping, get ping time in microseconds (uS).
     int dist = uS / US_ROUNDTRIP_CM;
-    
+
     Serial.print(dist);
     Serial.print(" ");
     Serial.println(targetVal);
@@ -212,14 +259,14 @@ void burstFireMeasure(){
 /**
 ** Function to pause measurements and wait for input, used primarily with burstFireMeasure()
 **/
-void pause(){
+void pause() {
   int incomingByte = 0;
-  while(incomingByte != 8){
-    if(Serial.available() > 0){
-      incomingByte = Serial.read()-'0';
-      if(incomingByte == 3){
+  while (incomingByte != 8) {
+    if (Serial.available() > 0) {
+      incomingByte = Serial.read() - '0';
+      if (incomingByte == 3) {
         break;
-      } else if(incomingByte == 4){
+      } else if (incomingByte == 4) {
         burstFireMeasure();
       }
     }
@@ -228,12 +275,12 @@ void pause(){
 
 /**
 ** Function used to move the motor in all directions once.
-** This "refreshes" the tracking as the motors can sometimes 
+** This "refreshes" the tracking as the motors can sometimes
 ** drift and lose sense of what is around the platform, by
 ** moving the motors in all directions, it "wakes up" the sensors
 ** into observing more information
 **/
-void refreshTracking(){
+void refreshTracking() {
   moveUp();
   delay(100);
   moveLeft();
@@ -248,19 +295,19 @@ void refreshTracking(){
 ** Update onboard display with temperatures recorded and distance
 **/
 
-void updateTempAndDistance(String output){
+void updateTempAndDistance(String output) {
   char info[100];
-  
+
   // Erase old info
-  TFTscreen.stroke(0,0,0);
-  oldInfo.toCharArray(info, oldInfo.length()+1);
+  TFTscreen.stroke(0, 0, 0);
+  oldInfo.toCharArray(info, oldInfo.length() + 1);
   TFTscreen.text(info, 0, 40);
 
   // write new info
-  TFTscreen.stroke(255,255,255);
-  output.toCharArray(info, output.length()+1);
+  TFTscreen.stroke(255, 255, 255);
+  output.toCharArray(info, output.length() + 1);
   TFTscreen.text(info, 0, 40);
-  
+
   // Save new info as old info to erase later
   oldInfo = output;
 }
@@ -271,21 +318,21 @@ void updateTempAndDistance(String output){
 ** in ASHRAE manuals (refer to current year manual for most updated info)
 **/
 
-String translateClo(float Icl){
- 
- String insulation = "With Icl = " + String(Icl) + ", ";
-  
- int transIcl = Icl * 100;
-  if (transIcl > 25 && transIcl <= 40){
+String translateClo(float Icl) {
+
+  String insulation = "With Icl = " + String(Icl) + ", ";
+
+  int transIcl = Icl * 100;
+  if (transIcl > 25 && transIcl <= 40) {
     insulation += F("subject is\nwearing shorts and a\nshort sleeve shirt.");
-  } else if (transIcl > 40 && transIcl <= 61){
+  } else if (transIcl > 40 && transIcl <= 61) {
     insulation += F("subject is\nwearing trousers and a\nshort sleeve shirt");
-  } else if (transIcl > 61 && transIcl <= 90){
-    insulation += F("subject is\nwearing trousers and a\nlong sleeve shirt or blouse");    
-  } else if(transIcl > 90) {
-     insulation += F("subject is\nwearing trousers, a shirt\n, and a blazer.");    
+  } else if (transIcl > 61 && transIcl <= 90) {
+    insulation += F("subject is\nwearing trousers and a\nlong sleeve shirt or blouse");
+  } else if (transIcl > 90) {
+    insulation += F("subject is\nwearing trousers, a shirt\n, and a blazer.");
   }
-  
+
   Serial.println(insulation);
   return insulation;
 }
@@ -293,36 +340,36 @@ String translateClo(float Icl){
 /**
 ** Generate a random clo and display it, used for debugging purposes
 **/
-void generateClo(){
-  int randNumber = TrueRandom.random(30,80);
-  float Icl = (float) randNumber/100;
+void generateClo() {
+  int randNumber = TrueRandom.random(30, 80);
+  float Icl = (float) randNumber / 100;
   String output = translateClo(Icl);
-//  Serial.println(output);
+  //  Serial.println(output);
   updateClothingInfo(output);
 }
 
 /**
 ** Display clothing inferred on the onboard screen
 **/
-void updateClothingInfo(String clo_output){
+void updateClothingInfo(String clo_output) {
   char info[200];
-  
+
   clearScreen();
   delay(500);
   // write new info
-  TFTscreen.stroke(255,102,0);
-  clo_output.toCharArray(info, clo_output.length()+1);
+  TFTscreen.stroke(255, 102, 0);
+  clo_output.toCharArray(info, clo_output.length() + 1);
   TFTscreen.text(info, 0, 70);
 }
 
 /*
-  This function is a dirty hack/quick fix to the problem of text writing over itself 
+  This function is a dirty hack/quick fix to the problem of text writing over itself
   when updating clo reading, we were running out of time for the demo so i wrote this
   dirty hack, please fix and find workaround if there is time the next time this project
   is opened.
 */
-void clearScreen(){
-  
+void clearScreen() {
+
   // clear the screen with a black background
   TFTscreen.background(0, 0, 0);
 
@@ -331,13 +378,13 @@ void clearScreen(){
   TFTscreen.stroke(255, 255, 255);
   // set the font size
   TFTscreen.setTextSize(2);
-    // write the text to the top left corner of the screen
+  // write the text to the top left corner of the screen
   TFTscreen.text("SiCILIA : \n\n ", 0, 0);
 
   // ste the font size very large for the loop
   TFTscreen.setTextSize(1);
-  TFTscreen.stroke(255,0,0);
-  TFTscreen.text("Tracking...",0,20);
+  TFTscreen.stroke(255, 0, 0);
+  TFTscreen.text("Tracking...", 0, 20);
 }
 
 /**
@@ -345,23 +392,23 @@ void clearScreen(){
 ** whether system detects them (print "found") or not (erase "found")
 **/
 
-void updateTrackingStatus(String statusString){
+void updateTrackingStatus(String statusString) {
   // erase old writing
-  if(statusString != "found"){
-    TFTscreen.stroke(0,0,0);
+  if (statusString != "found") {
+    TFTscreen.stroke(0, 0, 0);
     statusString = "found";
     statusString.toCharArray(statusPrint, 20);
     TFTscreen.text(statusPrint, 80, 20);
   } else {
-      TFTscreen.stroke(0,255,0);
+    TFTscreen.stroke(0, 255, 0);
   }
-  
+
   statusString.toCharArray(statusPrint, 20);
   TFTscreen.text(statusPrint, 80, 20);
 }
 
 /**************************************************************
-** Functions below are for calculation and inference of clothing. 
+** Functions below are for calculation and inference of clothing.
 ***************************************************************/
 float computeHeatTransferCoefficient() {
   return (12.1 * (pow(AIR_VELOCITY, 0.5)));
@@ -406,36 +453,36 @@ float compute_clo(float Ta, double Tcl, double Tsk) {
 }
 
 /*
-* Function to begin measuring clo value for occupant
-* 1. adjust motor position (if needed).
-* 2. take face temp
-* 3. sweep down
-* 4. take clothing temp
-* 5. take ambient temp
-* 6. determine clo
+  Function to begin measuring clo value for occupant
+  1. adjust motor position (if needed).
+  2. take face temp
+  3. sweep down
+  4. take clothing temp
+  5. take ambient temp
+  6. determine clo
 */
 
 float getFaceTemp() {
-//  Serial.print("Object = ");
+  //  Serial.print("Object = ");
   float objectTemp = mlx.readObjectTempC();
 
   unsigned int uS = sonar.ping(); // Send ping, get ping time in microseconds (uS).
-//  Serial.print("Ping: ");
+  //  Serial.print("Ping: ");
   int dist = uS / US_ROUNDTRIP_CM;
   return objectTemp;
 }
 
 float getClothingTemp() {
-//  Serial.print("Object = ");
+  //  Serial.print("Object = ");
   float objectTemp = mlx.readObjectTempC();
 
   unsigned int uS = sonar.ping(); // Send ping, get ping time in microseconds (uS).
-//  Serial.print("Ping: ");
+  //  Serial.print("Ping: ");
   int dist = uS / US_ROUNDTRIP_CM;
-//  Serial.print(dist); // Convert ping time to distance in cm and print result (0 = outside set distance range)
-//  Serial.println("cm");
+  //  Serial.print(dist); // Convert ping time to distance in cm and print result (0 = outside set distance range)
+  //  Serial.println("cm");
 
-//  float temp = AnticipateDistanceClothes(dist);
+  //  float temp = AnticipateDistanceClothes(dist);
   return objectTemp;
 }
 
@@ -444,7 +491,8 @@ float getClothingTemp() {
 *****************************************/
 void BeginMeasurement() {
   // Serial.println("Preparing to take measurement...");
-  delay(2000);
+  //delay(2000);
+  delay(1000);
 
   float Ta = mlx.readAmbientTempC();
 
@@ -455,45 +503,49 @@ void BeginMeasurement() {
   float Tsk = 0;
   float Tcl = 31;
   // Serial.println(Tsk);
-  
+
   int upCount = 0;
   Tsk = getFaceTemp();
-  while(Tsk*100 < 3000){
-     moveUp();
-     Tsk = getFaceTemp();
-     delay(500);
-     if(upCount < 7){
-       upCount++;
-     } else {
-        Serial.print(F("Face not found, temp found: "));
-        Serial.println(Tcl*100);
-       delay(2000);
-       return;
-     }
-     
+  while (Tsk * 100 < 3000) {
+    moveUp();
+    Tsk = getFaceTemp();
+    delay(500);
+    if (upCount < 7) {
+      upCount++;
+    } else {
+      Serial.print(F("Face not found, temp found: "));
+      Serial.println(Tcl * 100);
+      //delay(2000);
+      delay(1000);
+      return;
+    }
+
   }
-    
+
   // Move motors down to check clothing surface temperature
   int downCount = 0;
-  while(Tcl*100 > 3000){
+  while (Tcl * 100 > 3200) { // 3000 is too low for hot amb temp
     moveDown();
     Tcl = getClothingTemp();
     delay(500);
-    if(downCount < 7){
+    if (downCount < 4) { // downCount 7 is too much for far target
+      // if target is <50cm 7 is ok
+      // if target is >70cm 4 is good
       downCount++;
     } else {
       Serial.print(F("Torso not found, temp found: "));
-      Serial.println(Tcl*100);
-      delay(2000);
+      Serial.println(Tcl * 100);
+      //delay(2000);
+      delay(1000);
       return;
     }
   }
- 
-    
+
+
   float Icl = compute_clo(Ta, Tcl, Tsk);
-  if(Icl > 1.0 || Icl < 0.3){
-    int randNumber = TrueRandom.random(30,80);
-    Icl = (float) randNumber/100;
+  if (Icl > 1.0 || Icl < 0.3) {
+    int randNumber = TrueRandom.random(30, 80);
+    Icl = (float) randNumber / 100;
   }
   String output = "Ta: " + String(Ta) + "C\nTsk: " + String(Tsk) + "C\nTcl " + String(Tcl) + "C\nIcl: " + String(Icl) + " clo \n";
   Serial.println(output);
@@ -541,60 +593,60 @@ struct _position collectGridTemperatures() {
   int row = 0, column = 0;
   float celsius;
   int valid = 0;
-   Serial.println("\r\nPrinting array...");
-    for (int pixel = 0; pixel < 64; pixel++) {
-      Wire.beginTransmission(addr);
-      Wire.write(pixelTempL);
-      Wire.endTransmission();
-      Wire.requestFrom(addr, 2);
-      byte lowerLevel = Wire.read();
-      byte upperLevel = Wire.read();
+  //Serial.println("\r\nPrinting array...");
+  for (int pixel = 0; pixel < 64; pixel++) {
+    Wire.beginTransmission(addr);
+    Wire.write(pixelTempL);
+    Wire.endTransmission();
+    Wire.requestFrom(addr, 2);
+    byte lowerLevel = Wire.read();
+    byte upperLevel = Wire.read();
 
-      int temperature = ((upperLevel << 8) | lowerLevel);
-      //    int temperature = temp - 2048;
-      if (temperature > 2047) {
-        temperature = temperature - 4096;
-        //      temperature = -(2048 - temperature);
-      }
-  
-      celsius = temperature * 0.25;
-      
-      if(celsius <= 0)
-        ignore = true;
-      // Have to get row and column inside 64 step loop because
-      // grid-eye gives 64 values straight, it's easier to do it
-      // this way by calculating corresponding row/column in heatgrid map
-      // than the other way around
-  
-      //    Serial.print(celsius);
-      // Add to heat grid array,
-      heatGrid[row][column] = celsius;
-      
-      row = (int)(pixel + 1) / 8;
-  
-      //   Serial.print(" ");
-      if ((pixel + 1) % 8 == 0) {
-        //     Serial.print("\r\n");
-        column = 0;
-      } else {
-        column += 1;
-      }
-      pixelTempL = pixelTempL + 2;
+    int temperature = ((upperLevel << 8) | lowerLevel);
+    //    int temperature = temp - 2048;
+    if (temperature > 2047) {
+      temperature = temperature - 4096;
+      //      temperature = -(2048 - temperature);
     }
-  
-    Position pos ;
-    pos.x = CalculateCenterOfMassX();
-    pos.y = CalculateCenterOfMassY();
+
+    celsius = temperature * 0.25;
+
+    if (celsius <= 0)
+      ignore = true;
+    // Have to get row and column inside 64 step loop because
+    // grid-eye gives 64 values straight, it's easier to do it
+    // this way by calculating corresponding row/column in heatgrid map
+    // than the other way around
+
+    //    Serial.print(celsius);
+    // Add to heat grid array,
+    heatGrid[row][column] = celsius;
+
+    row = (int)(pixel + 1) / 8;
+
+    //   Serial.print(" ");
+    if ((pixel + 1) % 8 == 0) {
+      //     Serial.print("\r\n");
+      column = 0;
+    } else {
+      column += 1;
+    }
+    pixelTempL = pixelTempL + 2;
+  }
+
+  Position pos ;
+  pos.x = CalculateCenterOfMassX();
+  pos.y = CalculateCenterOfMassY();
 
 
-  
-   for(int i = 0; i < 8; i++){
-     for(int j = 0; j < 8; j++){
-       Serial.print(heatGrid[i][j]);
-       Serial.print(" ");
-     }
-     Serial.println();
-   }
+
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      //Serial.print(heatGrid[i][j]);
+      //Serial.print(" ");
+    }
+    //Serial.println();
+  }
   return pos;
 
 }
@@ -668,7 +720,7 @@ int computeCenterOfMass(int heatArray[8], int M) {
 
 /**
 ** Convert the center of mass and heat into a column value (or row)
-** in this implementation, the column and row values go from 1 to 9, with 4.5 being 
+** in this implementation, the column and row values go from 1 to 9, with 4.5 being
 ** the dead center of the grid
 **/
 
@@ -686,6 +738,56 @@ int convertToColumn(float R) {
   return (int)(newValue + 0.5);
 }
 
+//// callback for received data
+//void receiveData(int byteCount) {
+//  while (Wire.available()) {
+//    number = Wire.read();
+//    Serial.print("data received: ");
+//    Serial.println(number);
+//  }
+//}
+//
+//// callback for sending data
+//void sendData() {
+//  Wire.write(number);
+//}
 
+// Serial IO
+void recvStartEnd() {
+  static boolean recvInProgress = false;
+  static byte ndx = 0;
+  char startMarker = '<';
+  char endMarker = '>';
+  char rc;
 
+  while (Serial.available() > 0 && newData == false) {
+    rc = Serial.read();
 
+    if (recvInProgress == true) {
+      if (rc != endMarker) {
+        receivedChars[ndx] = rc;
+        ndx++;
+        if (ndx >= numChars) {
+          ndx = numChars - 1;
+        }
+      }
+      else {
+        receivedChars[ndx] = '\0'; // terminate the string
+        recvInProgress = false;
+        ndx = 0;
+        newData = true;
+      }
+    }
+
+    else if (rc == startMarker) {
+      recvInProgress = true;
+    }
+  }
+}
+
+void showData() {
+  if (newData == true) {
+    Serial.println(receivedChars);
+    newData = false;
+  }
+}
