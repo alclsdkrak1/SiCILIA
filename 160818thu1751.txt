@@ -1,0 +1,294 @@
+2016-08-18 17:52:00.122355
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.70 clo
+
+With Icl = 0.70, subject is
+wearing trousers and a
+long sleeve shirt or blouse
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.56 clo
+
+With Icl = 0.56, subject is
+wearing trousers and a
+short sleeve shirt
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.65 clo
+
+With Icl = 0.65, subject is
+wearing trousers and a
+long sleeve shirt or blouse
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.63 clo
+
+With Icl = 0.63, subject is
+wearing trousers and a
+long sleeve shirt or blouse
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.32 clo
+
+With Icl = 0.32, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.54 clo
+
+With Icl = 0.54, subject is
+wearing trousers and a
+short sleeve shirt
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.79 clo
+
+With Icl = 0.79, subject is
+wearing trousers and a
+long sleeve shirt or blouse
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.30 clo
+
+With Icl = 0.30, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.30 clo
+
+With Icl = 0.30, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.30 clo
+
+With Icl = 0.30, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.30 clo
+
+With Icl = 0.30, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 1037.55C
+Tsk: 1037.55C
+Tcl 31.00C
+Icl: 0.30 clo
+
+With Icl = 0.30, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1

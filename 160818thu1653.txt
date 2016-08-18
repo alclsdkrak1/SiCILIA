@@ -1,0 +1,137 @@
+2016-08-18 16:54:05.243299
+2016-08-18 16:54:19.757889
+2016-08-18 16:54:21.184919
+2016-08-18 16:54:59.478582
+ÿ1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 26.21C
+Tsk: 32.19C
+Tcl 31.00C
+Icl: 0.32 clo
+
+With Icl = 0.32, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 26.25C
+Tsk: 32.15C
+Tcl 31.00C
+Icl: 0.30 clo
+
+With Icl = 0.30, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 26.37C
+Tsk: 32.17C
+Tcl 31.00C
+Icl: 0.45 clo
+
+With Icl = 0.45, subject is
+wearing trousers and a
+short sleeve shirt
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 26.41C
+Tsk: 32.71C
+Tcl 31.00C
+Icl: 0.56 clo
+
+With Icl = 0.56, subject is
+wearing trousers and a
+short sleeve shirt
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 26.33C
+Tsk: 32.43C
+Tcl 31.00C
+Icl: 0.35 clo
+
+With Icl = 0.35, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Take measurement
+Ta: 26.33C
+Tsk: 32.49C
+Tcl 31.00C
+Icl: 0.36 clo
+
+With Icl = 0.36, subject is
+wearing shorts and a
+short sleeve shirt.
+1
+1
+1
+1
+1
+1
+1
+1
